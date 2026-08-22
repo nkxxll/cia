@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkApplicationWindow" id="main_window">
+    <property name="title">Zig GTK OpenGL Canvas</property>
+    <property name="default-width">900</property>
+    <property name="default-height">560</property>
+    <child>
+      <object class="GtkBox">
+        <property name="orientation">horizontal</property>
+        <property name="spacing">24</property>
+        <property name="margin-top">24</property>
+        <property name="margin-bottom">24</property>
+        <property name="margin-start">24</property>
+        <property name="margin-end">24</property>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="spacing">10</property>
+            <property name="hexpand">true</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">DIRECT RENDER SURFACE</property>
+                <property name="xalign">0</property>
+                <attributes>
+                  <attribute name="letter-spacing" value="1800"/>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">GTK owns the view. OpenGL draws the pixels.</property>
+                <property name="xalign">0</property>
+                <property name="opacity">0.65</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkFrame">
+                <property name="vexpand">true</property>
+                <child>
+                  <object class="GtkGLArea" id="gl_canvas">
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <property name="auto-render">false</property>
+                    <property name="has-depth-buffer">false</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">Move the pointer across the canvas to steer the light field.</property>
+                <property name="xalign">0</property>
+                <property name="opacity">0.65</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <property name="spacing">18</property>
+            <property name="width-request">250</property>
+            <property name="valign">center</property>
+            <child>
+              <object class="GtkLabel" id="greeting_label">
+                <property name="label">Hello, world!</property>
+                <property name="wrap">true</property>
+                <property name="xalign">0</property>
+                <attributes>
+                  <attribute name="scale" value="1.8"/>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">The regular GTK interface and the accelerated canvas share one application loop.</property>
+                <property name="wrap">true</property>
+                <property name="xalign">0</property>
+                <property name="opacity">0.65</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="label">What is your name?</property>
+                <property name="xalign">0</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="name_entry">
+                <property name="placeholder-text">Type your name</property>
+                <property name="max-length">100</property>
+                <property name="activates-default">false</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="reset_button">
+                <property name="label">Reset</property>
+                <property name="visible">false</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
