@@ -53,6 +53,6 @@ deterministic results for identical inputs, handle platform-supported arbitrary
 filesystem paths safely, release scan allocations, and keep analyzer and
 treemap layout code testable without GTK or an active OpenGL context.
 
-The MVP is complete when a user can launch `code-metrics .` (or another project
+The MVP is complete when a user can launch `cia .` (or another project
 path), see a responsive OpenGL treemap sized by LOC, inspect and navigate the
 result, safely cancel or rescan, and open a selected file in Neovim.

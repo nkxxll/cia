@@ -1,4 +1,4 @@
-# Code Metrics Explorer
+# Code Inspection and Analysis
 
 Requirements and implementation plan for a native GTK application that analyzes
 a source tree and presents its metrics as an interactive OpenGL treemap.
@@ -111,7 +111,7 @@ The application must accept a project directory at startup. A minimal initial
 interface should support:
 
 ```text
-code-metrics [OPTIONS] [PROJECT_DIRECTORY]
+cia [OPTIONS] [PROJECT_DIRECTORY]
 
 Options:
   -h, --help                 Show usage and exit.
@@ -150,11 +150,11 @@ Requirements:
 Example invocations:
 
 ```text
-code-metrics .
-code-metrics --project ~/src/my-project
-code-metrics ./fixture-project --dev-state treemap-loc
-code-metrics --project ./fixture-project --dev-fixture test-data/large-tree.json
-code-metrics --no-scan
+cia .
+cia --project ~/src/my-project
+cia ./fixture-project --dev-state treemap-loc
+cia --project ./fixture-project --dev-fixture test-data/large-tree.json
+cia --no-scan
 ```
 
 ### Project selection and scanning
@@ -325,7 +325,7 @@ layout changes and rendering changes independent from scanning.
 
 ### Phase 0: Prototype cleanup
 
-- Rename the application and window from the greeting prototype.
+- Apply CIA branding to the application and window.
 - Add `cli.zig` with a comptime-reflected options schema, typed parsing, usage
   generation, and `StartupOptions`.
 - Support `--help`, a positional project directory, `--project`, `--no-scan`,
@@ -406,7 +406,7 @@ layout changes and rendering changes independent from scanning.
   layout where the platform supports headless testing.
 - Manual acceptance test for selecting a project, cancelling, rescanning,
   zooming, selecting a file, and opening it in Neovim.
-- CLI acceptance tests for `code-metrics .`, `--help`, invalid options, and each
+- CLI acceptance tests for `cia .`, `--help`, invalid options, and each
   documented deterministic development state.
 - Run `zig build test` and `zig build` for every milestone; run the application
   with a fixture project before merging UI changes.
@@ -437,7 +437,7 @@ layout changes and rendering changes independent from scanning.
 
 ## MVP Acceptance Criteria
 
-The MVP is complete when a user can launch `code-metrics .` or provide another
+The MVP is complete when a user can launch `cia .` or provide another
 project path, see a responsive OpenGL treemap sized by LOC, navigate into
 directories, inspect a file's metrics, rescan or cancel safely, and open the
 selected file in Neovim. `--help` and invalid CLI input must work without

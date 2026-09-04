@@ -17,12 +17,6 @@ pub fn parse(args: []const []const u8) ParseError!?Command {
     return .lines;
 }
 
-pub fn run(command: Command) void {
-    switch (command) {
-        .lines => {}, // Placeholder for line-counting command behavior.
-    }
-}
-
 test "parse lines command" {
     try std.testing.expectEqual(Command.lines, (try parse(&.{"lines"})).?);
     try std.testing.expectEqual(null, try parse(&.{}));
