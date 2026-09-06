@@ -1,0 +1,20 @@
+[
+  {
+    "file": "main.cpp",
+    "arguments": [
+      "/usr/bin/c++",
+      "-I/opt/homebrew/Cellar/glfw/3.4/include",
+      "-I/opt/homebrew/Cellar/libepoxy/1.5.10/include",
+      "-std=c++26",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Wno-c23-extensions",
+      "main.cpp",
+      "-o",
+      "glfw-window"
+    ],
+    "directory": "/Users/niklas/git/cia/opengl-glfw-cpp",
+    "output": "glfw-window"
+  }
+]
