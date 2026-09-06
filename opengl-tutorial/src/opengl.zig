@@ -1,0 +1,54 @@
+const c = @cImport({
+    @cInclude("epoxy/gl.h");
+});
+
+pub const GLenum = c.GLenum;
+pub const GLuint = c.GLuint;
+pub const GLint = c.GLint;
+pub const GLsizei = c.GLsizei;
+pub const GLfloat = c.GLfloat;
+pub const GLchar = c.GLchar;
+pub const GLsizeiptr = c.GLsizeiptr;
+pub const GLintptr = c.GLintptr;
+
+pub const FALSE: GLint = 0;
+pub const COLOR_BUFFER_BIT: GLenum = c.GL_COLOR_BUFFER_BIT;
+pub const TRIANGLES: GLenum = c.GL_TRIANGLES;
+pub const ARRAY_BUFFER: GLenum = c.GL_ARRAY_BUFFER;
+pub const DYNAMIC_DRAW: GLenum = c.GL_DYNAMIC_DRAW;
+pub const FLOAT: GLenum = c.GL_FLOAT;
+pub const VERTEX_SHADER: GLenum = c.GL_VERTEX_SHADER;
+pub const FRAGMENT_SHADER: GLenum = c.GL_FRAGMENT_SHADER;
+pub const COMPILE_STATUS: GLenum = c.GL_COMPILE_STATUS;
+pub const LINK_STATUS: GLenum = c.GL_LINK_STATUS;
+
+pub const glAttachShader = c.glAttachShader;
+pub const glBindBuffer = c.glBindBuffer;
+pub const glBindVertexArray = c.glBindVertexArray;
+pub const glBufferData = c.glBufferData;
+pub const glBufferSubData = c.glBufferSubData;
+pub const glClear = c.glClear;
+pub const glClearColor = c.glClearColor;
+pub const glCompileShader = c.glCompileShader;
+pub const glCreateProgram = c.glCreateProgram;
+pub const glCreateShader = c.glCreateShader;
+pub const glDeleteBuffers = c.glDeleteBuffers;
+pub const glDeleteProgram = c.glDeleteProgram;
+pub const glDeleteShader = c.glDeleteShader;
+pub const glDeleteVertexArrays = c.glDeleteVertexArrays;
+pub const glDrawArrays = c.glDrawArrays;
+pub const glEnableVertexAttribArray = c.glEnableVertexAttribArray;
+pub const glGenBuffers = c.glGenBuffers;
+pub const glGenVertexArrays = c.glGenVertexArrays;
+pub const glGetProgramInfoLog = c.glGetProgramInfoLog;
+pub const glGetProgramiv = c.glGetProgramiv;
+pub const glGetShaderInfoLog = c.glGetShaderInfoLog;
+pub const glGetShaderiv = c.glGetShaderiv;
+pub const glGetUniformLocation = c.glGetUniformLocation;
+pub const glLinkProgram = c.glLinkProgram;
+pub const glShaderSource = c.glShaderSource;
+pub const glUniform1f = c.glUniform1f;
+pub const glUniform2f = c.glUniform2f;
+pub const glUseProgram = c.glUseProgram;
+pub const glVertexAttribPointer = c.glVertexAttribPointer;
+pub const glViewport = c.glViewport;
