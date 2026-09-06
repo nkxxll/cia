@@ -18,3 +18,5 @@ zig-out/
 .DS_Store
 .idea/
 .vscode/
+
+opengl-glfw-cpp/.cache
