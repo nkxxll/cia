@@ -1,3 +1,4 @@
+#include <cmath>
 #include <epoxy/gl.h>
 
 #define GLFW_INCLUDE_NONE
@@ -48,8 +49,8 @@ const Color colors[] = {Color(55, 126, 184, 255), Color(77, 175, 74, 255),
                         Color(228, 26, 28, 255),  Color(166, 86, 40, 255),
                         Color(247, 129, 191, 255)};
 
-std::vector<CPURectangle>
-treemap_layout(const std::vector<FileInfo> &entries, const int bounds[2]) {
+std::vector<CPURectangle> treemap_layout(const std::vector<FileInfo> &entries,
+                                         const int bounds[2]) {
   std::vector<FileInfo> positive_entries;
   positive_entries.reserve(entries.size());
   for (const auto &entry : entries) {
@@ -73,8 +74,8 @@ treemap_layout(const std::vector<FileInfo> &entries, const int bounds[2]) {
                                 std::int64_t pivot_size,
                                 std::int64_t second_size,
                                 std::int64_t third_size) {
-    const float total = static_cast<float>(first_size + pivot_size +
-                                           second_size + third_size);
+    const float total =
+        static_cast<float>(first_size + pivot_size + second_size + third_size);
     std::array<CPURectangle, 4> regions;
 
     if (area.width >= area.height) {
@@ -160,9 +161,8 @@ treemap_layout(const std::vector<FileInfo> &entries, const int bounds[2]) {
       const auto &pivot_region = regions[1];
       float aspect_ratio = std::numeric_limits<float>::infinity();
       if (pivot_region.width > 0.0F && pivot_region.height > 0.0F) {
-        aspect_ratio =
-            std::max(pivot_region.width / pivot_region.height,
-                     pivot_region.height / pivot_region.width);
+        aspect_ratio = std::max(pivot_region.width / pivot_region.height,
+                                pivot_region.height / pivot_region.width);
       }
       if (!found_split || aspect_ratio < best_aspect_ratio) {
         found_split = true;
@@ -228,6 +228,10 @@ const char fragment_shader_bytes2[] = {
 #embed "./fragment_shader2.glsl"
 };
 
+const char fragement_uniform_shader_bytes[] = {
+#embed "./fragement_uniform_shader.glsl"
+};
+
 const char treemap_vertex_shader_bytes[] = {
 #embed "./treemap_vertex_shader.glsl"
 };
@@ -261,7 +265,12 @@ struct TreemapRenderer {
   GLsizei vertex_count = 0;
 };
 
-enum class RenderMode { rectangle, triangles, treemap };
+enum class RenderMode {
+  rectangle,
+  triangles,
+  color_changing_triangle,
+  treemap
+};
 
 bool parseRenderMode(std::string_view argument, RenderMode &mode) {
   if (argument == "rectangle") {
@@ -270,6 +279,8 @@ bool parseRenderMode(std::string_view argument, RenderMode &mode) {
     mode = RenderMode::triangles;
   } else if (argument == "treemap") {
     mode = RenderMode::treemap;
+  } else if (argument == "color_changing_triangle") {
+    mode = RenderMode::color_changing_triangle;
   } else {
     return false;
   }
@@ -320,8 +331,7 @@ bool createTreemapRenderer(TreemapRenderer &renderer) {
     char info_log[512];
     glGetProgramInfoLog(renderer.shader_program, sizeof(info_log), nullptr,
                         info_log);
-    std::cerr << "Treemap shader program linking failed:\n"
-              << info_log << '\n';
+    std::cerr << "Treemap shader program linking failed:\n" << info_log << '\n';
     glDeleteProgram(renderer.shader_program);
     renderer.shader_program = 0;
     return false;
@@ -337,9 +347,8 @@ bool createTreemapRenderer(TreemapRenderer &renderer) {
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(TreemapVertex),
                         nullptr);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(
-      1, 4, GL_FLOAT, GL_FALSE, sizeof(TreemapVertex),
-      reinterpret_cast<void *>(offsetof(TreemapVertex, r)));
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(TreemapVertex),
+                        reinterpret_cast<void *>(offsetof(TreemapVertex, r)));
   glEnableVertexAttribArray(1);
   glBindVertexArray(0);
   return true;
@@ -362,6 +371,46 @@ void arraysAndBuffers(Triangle *t, const float (&vertices)[N]) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
   glEnableVertexAttribArray(0);
   glBindVertexArray(0);
+}
+
+bool createRectangle(Triangle &triangle) {
+  const GLuint vertex_shader =
+      compileShader(GL_VERTEX_SHADER, vertex_shader_bytes,
+                    static_cast<GLint>(sizeof(vertex_shader_bytes)));
+  const GLuint fragment_shader =
+      compileShader(GL_FRAGMENT_SHADER, fragement_uniform_shader_bytes,
+                    static_cast<GLint>(sizeof(fragement_uniform_shader_bytes)));
+
+  if (vertex_shader == 0 || fragment_shader == 0) {
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+    return false;
+  }
+
+  attachShader(&triangle, vertex_shader, fragment_shader);
+  glLinkProgram(triangle.shader_program);
+
+  glDeleteShader(vertex_shader);
+  glDeleteShader(fragment_shader);
+
+  const float va[] = {
+      -0.5F, -0.5F, 0.0F, 0.5F, -0.5F, 0.0F, 0.0F, 0.5F, 0.0F,
+  };
+
+  GLint success = GL_FALSE;
+  glGetProgramiv(triangle.shader_program, GL_LINK_STATUS, &success);
+  if (success != GL_TRUE) {
+    char info_log[512];
+    glGetProgramInfoLog(triangle.shader_program, sizeof(info_log), nullptr,
+                        info_log);
+    std::cerr << "Shader program linking failed:\n" << info_log << '\n';
+    glDeleteProgram(triangle.shader_program);
+    triangle.shader_program = 0;
+    return false;
+  }
+
+  arraysAndBuffers(&triangle, va);
+  return true;
 }
 
 bool createRectangle(Triangle triangles[2]) {
@@ -501,6 +550,17 @@ void drawTriangle(const Triangle &rectangle) {
   glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
+void drawUniformTriangle(const Triangle &rectangle) {
+  glUseProgram(rectangle.shader_program);
+  // update the uniform color
+  float timeValue = glfwGetTime();
+  float greenValue = std::sin(timeValue) / 2.0f + 0.5f;
+  int vertexColorLocation = glGetUniformLocation(rectangle.shader_program, "ourColor");
+  glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+  glBindVertexArray(rectangle.vertex_array);
+  glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
 void uploadTreemap(TreemapRenderer &renderer,
                    const std::vector<CPURectangle> &rectangles) {
   std::vector<TreemapVertex> vertices;
@@ -557,7 +617,7 @@ int main(int argc, char *argv[]) {
   RenderMode mode = RenderMode::rectangle;
   if (argc != 2 || !parseRenderMode(argv[1], mode)) {
     std::cerr << "Usage: " << argv[0]
-              << " <rectangle|triangles|treemap>\n";
+              << " <rectangle|triangles|color_changing_triangle|treemap>\n";
     return EXIT_FAILURE;
   }
 
@@ -587,6 +647,7 @@ int main(int argc, char *argv[]) {
 
   Rectangle rectangle;
   Triangle triangles[2];
+  Triangle triangle;
   TreemapRenderer treemap_renderer;
   std::vector<FileInfo> treemap_entries;
   std::vector<CPURectangle> treemap_rectangles;
@@ -604,6 +665,9 @@ int main(int argc, char *argv[]) {
   case RenderMode::treemap:
     treemap_entries.assign(files, files + std::size(files) - 1);
     initialized = createTreemapRenderer(treemap_renderer);
+    break;
+  case RenderMode::color_changing_triangle:
+    initialized = createRectangle(triangle);
     break;
   }
 
@@ -639,6 +703,9 @@ int main(int argc, char *argv[]) {
       drawTriangle(triangles[0]);
       drawTriangle(triangles[1]);
       break;
+    case RenderMode::color_changing_triangle:
+      drawUniformTriangle(triangle);
+      break;
     case RenderMode::treemap:
       if (width != layout_width || height != layout_height) {
         const int bounds[] = {width, height};
@@ -665,6 +732,9 @@ int main(int argc, char *argv[]) {
     break;
   case RenderMode::treemap:
     cleanupObject(&treemap_renderer);
+    break;
+  case RenderMode::color_changing_triangle:
+    cleanupObject(&triangle);
     break;
   }
   glfwDestroyWindow(window);
