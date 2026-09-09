@@ -13,7 +13,8 @@ all: $(TARGET)
 
 $(TARGET): $(SOURCES) vertex_shader.glsl fragment_shader.glsl fragment_shader2.glsl \
 	  fragement_uniform_shader.glsl treemap_vertex_shader.glsl \
-	  treemap_fragment_shader.glsl
+	  treemap_fragment_shader.glsl more_attributes_vertex_shader.glsl \
+	  more_attributes_fragment_shader.glsl
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(SOURCES) -o $@ $(LDFLAGS) $(LDLIBS)
 
 run: $(TARGET)

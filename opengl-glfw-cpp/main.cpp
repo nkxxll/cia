@@ -240,6 +240,14 @@ const char treemap_fragment_shader_bytes[] = {
 #embed "./treemap_fragment_shader.glsl"
 };
 
+const char more_attributes_vertex_shader_bytes[] = {
+#embed "./more_attributes_vertex_shader.glsl"
+};
+
+const char more_attributes_fragment_shader_bytes[] = {
+#embed "./more_attributes_fragment_shader.glsl"
+};
+
 struct Triangle {
   GLuint vertex_array = 0;
   GLuint vertex_buffer = 0;
@@ -250,6 +258,7 @@ struct Rectangle {
   GLuint vertex_array = 0;
   GLuint vertex_buffer = 0;
   GLuint shader_program = 0;
+  GLsizei vertex_count = 6;
 };
 
 struct TreemapVertex {
@@ -269,7 +278,8 @@ enum class RenderMode {
   rectangle,
   triangles,
   color_changing_triangle,
-  treemap
+  treemap,
+  more_attributes
 };
 
 bool parseRenderMode(std::string_view argument, RenderMode &mode) {
@@ -281,6 +291,8 @@ bool parseRenderMode(std::string_view argument, RenderMode &mode) {
     mode = RenderMode::treemap;
   } else if (argument == "color_changing_triangle") {
     mode = RenderMode::color_changing_triangle;
+  } else if (argument == "more_attributes") {
+    mode = RenderMode::more_attributes;
   } else {
     return false;
   }
@@ -371,6 +383,87 @@ void arraysAndBuffers(Triangle *t, const float (&vertices)[N]) {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
   glEnableVertexAttribArray(0);
   glBindVertexArray(0);
+}
+
+bool createQuadRectanglesWithColors(Rectangle &rectangle) {
+  const GLuint vertex_shader =
+      compileShader(GL_VERTEX_SHADER, more_attributes_vertex_shader_bytes,
+                    static_cast<GLint>(
+                        sizeof(more_attributes_vertex_shader_bytes)));
+  const GLuint fragment_shader =
+      compileShader(GL_FRAGMENT_SHADER, more_attributes_fragment_shader_bytes,
+                    static_cast<GLint>(
+                        sizeof(more_attributes_fragment_shader_bytes)));
+  if (vertex_shader == 0 || fragment_shader == 0) {
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+    return false;
+  }
+
+  rectangle.shader_program = glCreateProgram();
+  glAttachShader(rectangle.shader_program, vertex_shader);
+  glAttachShader(rectangle.shader_program, fragment_shader);
+  glLinkProgram(rectangle.shader_program);
+  glDeleteShader(vertex_shader);
+  glDeleteShader(fragment_shader);
+
+  GLint success = GL_FALSE;
+  glGetProgramiv(rectangle.shader_program, GL_LINK_STATUS, &success);
+  if (success != GL_TRUE) {
+    char info_log[512];
+    glGetProgramInfoLog(rectangle.shader_program, sizeof(info_log), nullptr,
+                        info_log);
+    std::cerr << "Shader program linking failed:\n" << info_log << '\n';
+    glDeleteProgram(rectangle.shader_program);
+    rectangle.shader_program = 0;
+    return false;
+  }
+
+  // Each vertex contains a position followed by its RGB color.
+  const float vertices[] = {
+      // Top-left rectangle.
+      -0.5F, 0.5F,  0.0F, 1.0F, 0.0F, 0.0F,
+      -0.5F, 0.0F,  0.0F, 0.0F, 0.0F, 1.0F,
+      0.0F,  0.0F,  0.0F, 1.0F, 1.0F, 0.0F,
+      -0.5F, 0.5F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.0F,  0.0F,  0.0F, 1.0F, 1.0F, 0.0F,
+      0.0F,  0.5F,  0.0F, 0.0F, 1.0F, 0.0F,
+      // Top-right rectangle.
+      0.0F,  0.5F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.0F,  0.0F,  0.0F, 0.0F, 0.0F, 1.0F,
+      0.5F,  0.0F,  0.0F, 1.0F, 1.0F, 0.0F,
+      0.0F,  0.5F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.5F,  0.0F,  0.0F, 1.0F, 1.0F, 0.0F,
+      0.5F,  0.5F,  0.0F, 0.0F, 1.0F, 0.0F,
+      // Bottom-left rectangle.
+      -0.5F, 0.0F,  0.0F, 1.0F, 0.0F, 0.0F,
+      -0.5F, -0.5F, 0.0F, 0.0F, 0.0F, 1.0F,
+      0.0F,  -0.5F, 0.0F, 1.0F, 1.0F, 0.0F,
+      -0.5F, 0.0F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.0F,  -0.5F, 0.0F, 1.0F, 1.0F, 0.0F,
+      0.0F,  0.0F,  0.0F, 0.0F, 1.0F, 0.0F,
+      // Bottom-right rectangle.
+      0.0F,  0.0F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.0F,  -0.5F, 0.0F, 0.0F, 0.0F, 1.0F,
+      0.5F,  -0.5F, 0.0F, 1.0F, 1.0F, 0.0F,
+      0.0F,  0.0F,  0.0F, 1.0F, 0.0F, 0.0F,
+      0.5F,  -0.5F, 0.0F, 1.0F, 1.0F, 0.0F,
+      0.5F,  0.0F,  0.0F, 0.0F, 1.0F, 0.0F,
+  };
+
+  glGenVertexArrays(1, &rectangle.vertex_array);
+  glGenBuffers(1, &rectangle.vertex_buffer);
+  glBindVertexArray(rectangle.vertex_array);
+  glBindBuffer(GL_ARRAY_BUFFER, rectangle.vertex_buffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                        reinterpret_cast<void *>(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glBindVertexArray(0);
+  rectangle.vertex_count = 24;
+  return true;
 }
 
 bool createRectangle(Triangle &triangle) {
@@ -541,7 +634,7 @@ void cleanupObject(TreemapRenderer *renderer) {
 void drawRectangle(const Rectangle &rectangle) {
   glUseProgram(rectangle.shader_program);
   glBindVertexArray(rectangle.vertex_array);
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDrawArrays(GL_TRIANGLES, 0, rectangle.vertex_count);
 }
 
 void drawTriangle(const Triangle &rectangle) {
@@ -555,7 +648,8 @@ void drawUniformTriangle(const Triangle &rectangle) {
   // update the uniform color
   float timeValue = glfwGetTime();
   float greenValue = std::sin(timeValue) / 2.0f + 0.5f;
-  int vertexColorLocation = glGetUniformLocation(rectangle.shader_program, "ourColor");
+  int vertexColorLocation =
+      glGetUniformLocation(rectangle.shader_program, "ourColor");
   glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
   glBindVertexArray(rectangle.vertex_array);
   glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -617,7 +711,8 @@ int main(int argc, char *argv[]) {
   RenderMode mode = RenderMode::rectangle;
   if (argc != 2 || !parseRenderMode(argv[1], mode)) {
     std::cerr << "Usage: " << argv[0]
-              << " <rectangle|triangles|color_changing_triangle|treemap>\n";
+              << " <rectangle|triangles|color_changing_triangle|treemap|"
+                 "more_attributes>\n";
     return EXIT_FAILURE;
   }
 
@@ -669,6 +764,9 @@ int main(int argc, char *argv[]) {
   case RenderMode::color_changing_triangle:
     initialized = createRectangle(triangle);
     break;
+  case RenderMode::more_attributes:
+    initialized = createQuadRectanglesWithColors(rectangle);
+    break;
   }
 
   if (!initialized) {
@@ -691,8 +789,8 @@ int main(int argc, char *argv[]) {
     glViewport(0, 0, width, height);
 
     // clear the background with a color
-    glClearColor(hexToGLFloatColor(0x1d), hexToGLFloatColor(20),
-                 hexToGLFloatColor(21), 1.0F);
+    glClearColor(hexToGLFloatColor(0x1d), hexToGLFloatColor(0x20),
+                 hexToGLFloatColor(0x21), 1.0F);
     glClear(GL_COLOR_BUFFER_BIT);
 
     switch (mode) {
@@ -705,6 +803,9 @@ int main(int argc, char *argv[]) {
       break;
     case RenderMode::color_changing_triangle:
       drawUniformTriangle(triangle);
+      break;
+    case RenderMode::more_attributes:
+      drawRectangle(rectangle);
       break;
     case RenderMode::treemap:
       if (width != layout_width || height != layout_height) {
@@ -735,6 +836,9 @@ int main(int argc, char *argv[]) {
     break;
   case RenderMode::color_changing_triangle:
     cleanupObject(&triangle);
+    break;
+  case RenderMode::more_attributes:
+    cleanupObject(&rectangle);
     break;
   }
   glfwDestroyWindow(window);
