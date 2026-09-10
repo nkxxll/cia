@@ -20,3 +20,4 @@ zig-out/
 .vscode/
 
 opengl-glfw-cpp/.cache
+opengl-glfw-cpp/glfw-window*
