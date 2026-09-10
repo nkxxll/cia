@@ -21,3 +21,10 @@ zig-out/
 
 opengl-glfw-cpp/.cache
 opengl-glfw-cpp/glfw-window*
+opengl-glfw-cpp/image-test
+
+*.ppm
+*.jpg
+*.jpeg
+
+
