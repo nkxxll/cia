@@ -29,14 +29,13 @@ const Vertex = extern struct {
     color: [3]f32,
 };
 
-const Renderer = struct {
+const Shader = struct {
     program: gl.GLuint = 0,
-    vao: gl.GLuint = 0,
-    vbo: gl.GLuint = 0,
-    pan_location: gl.GLint = -1,
-    zoom_location: gl.GLint = -1,
 
-    fn init(self: *Renderer) !void {
+    const Self = @This();
+
+    pub fn init() !Self {
+        var self = Shader{};
         const vertex_shader = try compileShader(gl.VERTEX_SHADER, vertex_shader_source);
         defer gl.glDeleteShader(vertex_shader);
         const fragment_shader = try compileShader(gl.FRAGMENT_SHADER, fragment_shader_source);
@@ -53,9 +52,21 @@ const Renderer = struct {
             printProgramLog(self.program);
             return error.ProgramLinkFailed;
         }
+        return self;
+    }
+};
 
-        self.pan_location = gl.glGetUniformLocation(self.program, "pan");
-        self.zoom_location = gl.glGetUniformLocation(self.program, "zoom");
+const Renderer = struct {
+    shader: Shader = undefined,
+    vao: gl.GLuint = 0,
+    vbo: gl.GLuint = 0,
+    pan_location: gl.GLint = -1,
+    zoom_location: gl.GLint = -1,
+
+    fn init(self: *Renderer) !void {
+        self.shader = try Shader.init();
+        self.pan_location = gl.glGetUniformLocation(self.shader.program, "pan");
+        self.zoom_location = gl.glGetUniformLocation(self.shader.program, "zoom");
 
         gl.glGenVertexArrays(1, &self.vao);
         gl.glBindVertexArray(self.vao);
@@ -74,7 +85,7 @@ const Renderer = struct {
         gl.glClearColor(state.clear_color[0], state.clear_color[1], state.clear_color[2], 1.0);
         gl.glClear(gl.COLOR_BUFFER_BIT);
 
-        gl.glUseProgram(self.program);
+        gl.glUseProgram(self.shader.program);
         gl.glUniform2f(self.pan_location, state.pan[0], state.pan[1]);
         gl.glUniform1f(self.zoom_location, state.zoom);
         gl.glBindVertexArray(self.vao);
@@ -86,7 +97,7 @@ const Renderer = struct {
     fn deinit(self: *Renderer) void {
         if (self.vbo != 0) gl.glDeleteBuffers(1, &self.vbo);
         if (self.vao != 0) gl.glDeleteVertexArrays(1, &self.vao);
-        if (self.program != 0) gl.glDeleteProgram(self.program);
+        if (self.shader.program != 0) gl.glDeleteProgram(self.shader.program);
         self.* = .{};
     }
 };
@@ -131,7 +142,7 @@ fn activate(app: *gtk.GtkApplication, user_data: gtk.gpointer) callconv(.c) void
     const state: *State = @ptrCast(@alignCast(user_data.?));
     const window: *gtk.GtkWindow = @ptrCast(gtk.gtk_application_window_new(app));
     gtk.gtk_window_set_title(window, "Zig + OpenGL input playground");
-    gtk.gtk_window_set_default_size(window, 900, 600);
+    gtk.gtk_window_set_default_size(window, 1000, 800);
 
     const area_widget = gtk.gtk_gl_area_new();
     const area: *gtk.GtkGLArea = @ptrCast(area_widget);
@@ -144,6 +155,7 @@ fn activate(app: *gtk.GtkApplication, user_data: gtk.gpointer) callconv(.c) void
     connect(area, "unrealize", unrealize, state);
 
     const motion = gtk.gtk_event_controller_motion_new();
+    connect(motion, "enter", mouseEntered, state);
     connect(motion, "motion", mouseMotion, state);
     gtk.gtk_widget_add_controller(area_widget, motion);
 
@@ -201,13 +213,19 @@ fn mouseMotion(_: *gtk.GtkEventController, x: f64, y: f64, user_data: gtk.gpoint
         state.pan[0] += @floatCast(2.0 * (x - state.last_pointer[0]) / state.width);
         state.pan[1] -= @floatCast(2.0 * (y - state.last_pointer[1]) / state.height);
     }
-    state.last_pointer = .{ x, y };
+    updatePointer(state, x, y);
+}
 
-    const screen_x: f32 = @floatCast(2.0 * x / state.width - 1.0);
-    const screen_y: f32 = @floatCast(1.0 - 2.0 * y / state.height);
+fn mouseEntered(_: *gtk.GtkEventController, x: f64, y: f64, user_data: gtk.gpointer) callconv(.c) void {
+    const state: *State = @ptrCast(@alignCast(user_data.?));
+    updatePointer(state, x, y);
+}
+
+fn updatePointer(state: *State, x: f64, y: f64) void {
+    state.last_pointer = .{ x, y };
     state.cursor = .{
-        (screen_x - state.pan[0]) / state.zoom,
-        (screen_y - state.pan[1]) / state.zoom,
+        @floatCast(2.0 * x / state.width - 1.0),
+        @floatCast(1.0 - 2.0 * y / state.height),
     };
     state.queueRender();
 }
@@ -216,8 +234,7 @@ fn mousePressed(_: *gtk.GtkGestureClick, _: c_int, x: f64, y: f64, user_data: gt
     const state: *State = @ptrCast(@alignCast(user_data.?));
     state.dragging = true;
     state.alternate_colors = !state.alternate_colors;
-    state.last_pointer = .{ x, y };
-    state.queueRender();
+    updatePointer(state, x, y);
 }
 
 fn mouseReleased(_: *gtk.GtkGestureClick, _: c_int, _: f64, _: f64, user_data: gtk.gpointer) callconv(.c) void {
@@ -255,31 +272,32 @@ fn keyPressed(_: *gtk.GtkEventController, key: c_uint, _: c_uint, _: c_uint, use
 
 fn makeVertices(state: *const State) [15]Vertex {
     const triangle_colors: [3][3]f32 = if (state.alternate_colors)
-        .{ .{ 1.0, 0.35, 0.2 }, .{ 0.9, 0.2, 0.75 }, .{ 0.25, 0.8, 1.0 } }
+        .{ .{ 1.0, 0.0, 0.0 }, .{ 0.0, 1.0, 0.0 }, .{ 0.0, 0.0, 1.0 } }
     else
-        .{ .{ 0.95, 0.25, 0.3 }, .{ 0.2, 0.85, 0.5 }, .{ 0.25, 0.5, 1.0 } };
-    const cx = state.cursor[0];
-    const cy = state.cursor[1];
-    const marker_size = 0.025 / state.zoom;
+        .{ .{ 1.0, 1.0, 0.0 }, .{ 0.0, 1.0, 1.0 }, .{ 1.0, 1.0, 1.0 } };
+    const cx = (state.cursor[0] - state.pan[0]) / state.zoom;
+    const cy = (state.cursor[1] - state.pan[1]) / state.zoom;
+    const marker_height = 0.035 / state.zoom;
+    const marker_width = marker_height * state.height / state.width;
 
     return .{
-        .{ .position = .{ -0.72, -0.35 }, .color = triangle_colors[0] },
-        .{ .position = .{ -0.15, -0.35 }, .color = triangle_colors[1] },
-        .{ .position = .{ -0.43, 0.55 }, .color = triangle_colors[2] },
+        .{ .position = .{ -0.5, -0.5 }, .color = triangle_colors[0] },
+        .{ .position = .{ 0.5, 0.0 }, .color = triangle_colors[1] },
+        .{ .position = .{ 0.5, 0.5 }, .color = triangle_colors[2] },
 
-        .{ .position = .{ 0.12, -0.35 }, .color = .{ 0.95, 0.7, 0.15 } },
-        .{ .position = .{ 0.7, -0.35 }, .color = .{ 0.95, 0.7, 0.15 } },
-        .{ .position = .{ 0.7, 0.35 }, .color = .{ 0.3, 0.75, 0.95 } },
-        .{ .position = .{ 0.12, -0.35 }, .color = .{ 0.95, 0.7, 0.15 } },
-        .{ .position = .{ 0.7, 0.35 }, .color = .{ 0.3, 0.75, 0.95 } },
-        .{ .position = .{ 0.12, 0.35 }, .color = .{ 0.65, 0.35, 0.95 } },
+        .{ .position = .{ -0.35, -0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
+        .{ .position = .{ 0.35, -0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
+        .{ .position = .{ 0.35, 0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
+        .{ .position = .{ -0.35, -0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
+        .{ .position = .{ 0.35, 0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
+        .{ .position = .{ -0.35, 0.25 }, .color = .{ 1.0, 0.55, 0.08 } },
 
-        .{ .position = .{ cx, cy + marker_size }, .color = .{ 1, 1, 1 } },
-        .{ .position = .{ cx - marker_size, cy }, .color = .{ 1, 1, 1 } },
-        .{ .position = .{ cx, cy - marker_size }, .color = .{ 1, 1, 1 } },
-        .{ .position = .{ cx, cy + marker_size }, .color = .{ 1, 1, 1 } },
-        .{ .position = .{ cx, cy - marker_size }, .color = .{ 1, 1, 1 } },
-        .{ .position = .{ cx + marker_size, cy }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx, cy + marker_height }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx - marker_width, cy }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx, cy - marker_height }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx, cy + marker_height }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx, cy - marker_height }, .color = .{ 1, 1, 1 } },
+        .{ .position = .{ cx + marker_width, cy }, .color = .{ 1, 1, 1 } },
     };
 }
 
