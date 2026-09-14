@@ -41,4 +41,6 @@ pub const glLinkProgram = c.glLinkProgram;
 pub const glShaderSource = c.glShaderSource;
 pub const glUniform1f = c.glUniform1f;
 pub const glUniform2f = c.glUniform2f;
+pub const glUniform4f = c.glUniform4f;
 pub const glUseProgram = c.glUseProgram;
+pub const glViewport = c.glViewport;

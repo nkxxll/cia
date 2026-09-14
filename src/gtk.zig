@@ -23,6 +23,7 @@ pub const G_APPLICATION_DEFAULT_FLAGS: c_uint = 0;
 pub const G_CONNECT_DEFAULT: c_uint = 0;
 pub const G_SOURCE_REMOVE: gboolean = 0;
 pub const G_SOURCE_CONTINUE: gboolean = 1;
+pub const GDK_GL_API_GL: c_uint = 1;
 
 pub extern fn gtk_application_new(application_id: [*:0]const u8, flags: c_uint) ?*GtkApplication;
 pub extern fn gtk_builder_new_from_string(string: [*]const u8, length: isize) *GtkBuilder;
@@ -32,13 +33,18 @@ pub extern fn gtk_editable_set_text(editable: *GtkEditable, text: [*:0]const u8)
 pub extern fn gtk_event_controller_motion_new() *GtkEventController;
 pub extern fn gtk_gl_area_make_current(area: *GtkGLArea) void;
 pub extern fn gtk_gl_area_queue_render(area: *GtkGLArea) void;
+pub extern fn gtk_gl_area_set_allowed_apis(area: *GtkGLArea, apis: c_uint) void;
 pub extern fn gtk_gl_area_set_required_version(area: *GtkGLArea, major: c_int, minor: c_int) void;
 pub extern fn gtk_label_set_text(label: *GtkLabel, text: [*:0]const u8) void;
 pub extern fn gtk_stack_set_visible_child_name(stack: *GtkStack, name: [*:0]const u8) void;
 pub extern fn gtk_widget_add_controller(widget: *GtkWidget, controller: *GtkEventController) void;
 pub extern fn gtk_widget_add_tick_callback(widget: *GtkWidget, callback: GtkTickCallback, user_data: gpointer, notify: ?*const fn (gpointer) callconv(.c) void) guint;
 pub extern fn gtk_widget_get_height(widget: *GtkWidget) c_int;
+pub extern fn gtk_widget_get_scale_factor(widget: *GtkWidget) c_int;
 pub extern fn gtk_widget_get_width(widget: *GtkWidget) c_int;
+pub extern fn gtk_widget_remove_tick_callback(widget: *GtkWidget, id: guint) void;
+pub extern fn gtk_widget_set_sensitive(widget: *GtkWidget, sensitive: gboolean) void;
+pub extern fn gtk_widget_set_tooltip_text(widget: *GtkWidget, text: ?[*:0]const u8) void;
 pub extern fn gtk_widget_set_visible(widget: *GtkWidget, visible: gboolean) void;
 pub extern fn gtk_window_present(window: *GtkWindow) void;
 pub extern fn gtk_window_set_application(window: *GtkWindow, application: *GtkApplication) void;

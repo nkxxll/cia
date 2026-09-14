@@ -12,6 +12,10 @@ pub fn main(init: std.process.Init) !void {
     else
         .home;
 
-    var application: Application = .{ .initial_screen = initial_screen };
+    var application: Application = .{
+        .allocator = init.gpa,
+        .io = init.io,
+        .initial_screen = initial_screen,
+    };
     application.run();
 }

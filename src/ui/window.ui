@@ -80,6 +80,11 @@
                         </attributes>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkButton" id="rescan_button">
+                        <property name="label">Rescan</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>
@@ -95,16 +100,15 @@
                             <property name="auto-render">false</property>
                           </object>
                         </child>
-                        <child type="overlay">
-                          <object class="GtkLabel">
-                            <property name="label">OpenGL lines will appear here.</property>
-                            <property name="halign">center</property>
-                            <property name="valign">center</property>
-                            <property name="opacity">0.65</property>
-                          </object>
-                        </child>
                       </object>
                     </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="lines_status_label">
+                    <property name="label">Preparing scan...</property>
+                    <property name="xalign">0</property>
+                    <property name="opacity">0.72</property>
                   </object>
                 </child>
               </object>
