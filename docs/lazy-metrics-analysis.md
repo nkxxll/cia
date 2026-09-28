@@ -1,5 +1,10 @@
 # Lazy, shared file analysis
 
+Historical exploration. The selected approach is now documented in
+[the report design](core-info-design.md): share temporary analysis within each
+request and defer persistent caching. The lazy getters, cache ownership and
+invalidation below are not the current implementation plan.
+
 ## Goal
 
 Compute file and function metrics on demand while reusing the same source buffer,

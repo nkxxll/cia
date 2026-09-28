@@ -2,6 +2,25 @@
 
 ... not what you think.
 
+## Build and packages
+
+Requires Zig 0.16; the frontend also requires GTK 4 and libepoxy development
+files and pkg-config.
+
+```sh
+zig build               # install cia, the core shared library, and its C header
+zig build run -- lines  # open the LOC treemap for the working directory
+zig build test          # all headless tests, including the C ABI integration test
+```
+
+- [cia-core](cia-core/README.md): standalone analysis module and shared library
+  for Zig, C/C++, Qt, and other frontends. Build it without GTK using
+  `cd cia-core && zig build`.
+- [cia-opengl](cia-opengl/README.md): GTK/OpenGL application, with cia-core as a
+  Zig package dependency and a separate pure treemap layout module.
+
+See [the package boundary](docs/core-ui-split.md) for API and ownership details.
+
 ## Mission statement
 
 For me to go deeper into systems programming. I am familiar with memory

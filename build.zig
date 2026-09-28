@@ -1,36 +1,20 @@
+//! Workspace convenience commands. Each child package also builds independently.
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
-
-    const exe = b.addExecutable(.{
-        .name = "cia",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    exe.root_module.linkSystemLibrary("gtk4", .{ .use_pkg_config = .force });
-    exe.root_module.linkSystemLibrary("epoxy", .{ .use_pkg_config = .force });
+    const options = .{ .target = b.standardTargetOptions(.{}), .optimize = b.standardOptimizeOption(.{}) };
+    const core = b.dependency("cia_core", options);
+    const ui = b.dependency("cia_opengl", options);
+    const exe = ui.artifact("cia");
     b.installArtifact(exe);
+    b.installArtifact(core.artifact("cia-core"));
 
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
+    const run = b.addRunArtifact(exe);
+    run.step.dependOn(b.getInstallStep());
+    if (b.args) |args| run.addArgs(args);
+    b.step("run", "Run CIA").dependOn(&run.step);
 
-    const run_step = b.step("run", "Run CIA");
-    run_step.dependOn(&run_cmd.step);
-
-    const tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/tests.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    const run_tests = b.addRunArtifact(tests);
-    const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_tests.step);
+    const tests = b.step("test", "Run all headless tests");
+    tests.dependOn(&core.builder.top_level_steps.get("test").?.step);
+    tests.dependOn(&ui.builder.top_level_steps.get("test").?.step);
 }

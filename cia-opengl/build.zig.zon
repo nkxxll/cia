@@ -1,0 +1,10 @@
+.{
+    .name = .cia_opengl,
+    .fingerprint = 0xc03fb5c936b7f5ec, // Changing this has security and trust implications.
+    .version = "0.1.0",
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .cia_core = .{ .path = "../cia-core" },
+    },
+    .paths = .{ "build.zig", "build.zig.zon", "src", "README.md" },
+}

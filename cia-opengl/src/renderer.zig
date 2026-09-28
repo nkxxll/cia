@@ -1,6 +1,6 @@
 const std = @import("std");
 const gl = @import("opengl.zig");
-const treemap = @import("treemap.zig");
+const treemap = @import("layout");
 
 const vertex_shader_source: [*:0]const u8 =
     \\#version 150 core

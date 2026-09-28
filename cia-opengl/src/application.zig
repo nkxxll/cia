@@ -1,10 +1,10 @@
 const std = @import("std");
 const gtk = @import("gtk.zig");
 const gl = @import("opengl.zig");
-const LinesModel = @import("lines_model.zig").LinesModel;
+const LinesModel = @import("cia-core").LinesModel;
 const Renderer = @import("renderer.zig").Renderer;
-const scanner = @import("scanner.zig");
-const treemap = @import("treemap.zig");
+const scanner = @import("cia-core");
+const treemap = @import("layout");
 
 const window_xml = @embedFile("ui/window.ui");
 
