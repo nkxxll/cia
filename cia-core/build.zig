@@ -7,7 +7,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
+    core.linkSystemLibrary("libgit2", .{ .use_pkg_config = .force });
     const library = b.addLibrary(.{
         .name = "cia-core",
         .linkage = .dynamic,

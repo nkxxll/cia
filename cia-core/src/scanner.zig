@@ -1,41 +1,71 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
+const Git = @import("git.zig").Git;
 
-/// Find all source files that are tracked by git and have the source file
-/// ending for Zig this is ".zig". If the Scanning should be cancelled because
-/// of a UI-event this can be done with `cancelled`.
-pub fn scan(
-    allocator: std.mem.Allocator,
-    io: std.Io,
-) !void {
-    // WARN: the list has to either take ownership of the entries, take its own
-    // owned entry type, or not outlive the waker
-    var source_files: ArrayList(std.Io.Dir.Walker.Entry) = .initCapacity(64);
+/// Finds existing tracked Zig files, or all Zig files outside a repository.
+pub fn find_source_files(allocator: std.mem.Allocator, io: std.Io) ![][]const u8 {
+    // Own paths only: walker entries contain borrowed directory handles.
+    var source_files: ArrayList([]const u8) = try .initCapacity(allocator, 64);
     defer {
-        for (source_files.items) |entry| allocator.free(entry.path);
+        for (source_files.items) |path| allocator.free(path);
         source_files.deinit(allocator);
     }
-
-    const r = try std.Io.Dir.cwd().openDir(io, "", .{ .iterate = true });
-
-    walk(r);
+    var repository = try Git.init(allocator, io, ".");
+    defer if (repository) |*repo| repo.deinit();
+    const directory = try std.Io.Dir.cwd().openDir(io, ".", .{ .iterate = true });
+    defer directory.close(io);
+    try walk(allocator, io, directory, if (repository) |*repo| repo else null, &source_files);
+    return try source_files.toOwnedSlice(allocator);
 }
 
-fn walk(dir: std.Io.Dir, source_files: ArrayList(std.Io.Dir.Walker.Entry)) !void {
-    var walker = try dir.walk();
-    while (try walker.next()) |entry| {
-        if (isSourceFile(entry)) {
-            // TODO: append to source_files
+fn walk(
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    directory: std.Io.Dir,
+    repository: ?*const Git,
+    source_files: *ArrayList([]const u8),
+) !void {
+    var walker = try directory.walk(allocator);
+    defer walker.deinit();
+    while (try walker.next(io)) |entry| {
+        if (entry.kind == .directory and
+            (std.mem.eql(u8, entry.basename, ".git") or std.mem.eql(u8, entry.basename, ".jj")))
+        {
+            walker.leave(io);
+            continue;
         }
-
-        if (entry.kind == .directory) {
-            try walk(entry.dir);
+        if (try isSourceFile(repository, entry)) {
+            const path = try allocator.dupe(u8, entry.path);
+            errdefer allocator.free(path);
+            try source_files.append(allocator, path);
         }
     }
 }
 
-/// Uses libgit2 to find out whether the file is ignored and tests the
-/// extension for the zig file extension
-fn isSourceFile(entry: std.Io.Dir.Walker.Entry) bool {
+/// Outside a Git repository, the file kind and .zig extension are sufficient.
+fn isSourceFile(repository: ?*const Git, entry: std.Io.Dir.Walker.Entry) !bool {
+    if (entry.kind != .file or !std.mem.endsWith(u8, entry.path, ".zig")) return false;
+    if (repository) |repo| return try repo.isGitFile(entry.path);
     return true;
+}
+
+test "outside Git only Zig files qualify" {
+    var entry: std.Io.Dir.Walker.Entry = .{
+        .dir = .cwd(),
+        .basename = "source.zig",
+        .path = "source.zig",
+        .kind = .file,
+    };
+    try std.testing.expect(try isSourceFile(null, entry));
+    entry.path = "source.txt";
+    try std.testing.expect(!try isSourceFile(null, entry));
+    entry.path = "directory.zig";
+    entry.kind = .directory;
+    try std.testing.expect(!try isSourceFile(null, entry));
+}
+
+test "scanner instantiates with Zig 0.16 IO" {
+    const paths = try find_source_files(std.testing.allocator, std.testing.io);
+    defer std.testing.allocator.free(paths);
+    defer for (paths) |path| std.testing.allocator.free(path);
 }
